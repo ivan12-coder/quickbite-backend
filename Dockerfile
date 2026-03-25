@@ -1,14 +1,24 @@
 # Use Java 25 as the base image
 FROM openjdk:25-jdk-slim
 
-# Set working directory inside container
+# Install maven (since mvnw might not work)
+RUN apt-get update && apt-get install -y maven
+
+# Set working directory
 WORKDIR /app
 
-# Copy the jar file from target folder
-COPY target/*.jar app.jar
+# Copy pom.xml first (for caching)
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# Expose port 8080
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Expose port
 EXPOSE 8080
 
-# Command to run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "target/*.jar"]
